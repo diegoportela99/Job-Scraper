@@ -79,13 +79,7 @@ def main():
     values = 0
     url = 'https://www.indeed.com.au/data-jobs'
 
-    proxylist = getProxies()
-
-    print("Extracting best proxies...")
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(extract, proxylist)
-
-    print(proxy_list)
+    render_proxy()
     
     # Create template for CSV file
     with open('results.csv', 'a', newline='', encoding='utf-8') as f:
@@ -93,9 +87,6 @@ def main():
         writer.writerow(['Job Title', 'Company', 'Location', 'Salary', 'Posting Date', 'Extract Date', 'Summary', 'Description', 'Job Url'])
 
     new_proxy = proxy_list[0]
-    #check them all with futures super quick
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(extract, proxylist)
     
     # Data Scraping
     while True:
@@ -117,6 +108,7 @@ def main():
 
         except requests.exceptions.RequestException as e:
             print(e)
+            render_proxy()
             pass
 
         
@@ -132,14 +124,15 @@ def main():
         try:
             url = 'https://www.indeed.com.au' + soup.find('a', {'aria-label': 'Next'}).get('href')
         except AttributeError:
-            # This shouldn't be called until all proxies from list are depleted. (quick fix im going to sleep and letting it run)
-            print("CAPTA OR PROXY ISSUE")
-            proxylist = getProxies()
+            render_proxy()
 
-            print("Extracting best proxies again...")
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(extract, proxylist)
-            print(proxy_list)
+def render_proxy():
+    # This shouldn't be called until all proxies from list are depleted. (quick fix im going to sleep and letting it run)
+    proxy_list = getProxies()
+    print("Extracting best proxies... ")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(extract, proxy_list)
+    print(proxy_list)
             
 
 # Proxy hopping to avoid indeed detecting scraping
