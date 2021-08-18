@@ -7,6 +7,7 @@ from datetime import datetime
 from lxml.html import fromstring
 from itertools import cycle
 import traceback
+import concurrent.futures
 
 # Author: Diego Portela
 # Webscrapper program for indeed.com.au
@@ -15,20 +16,9 @@ import traceback
 # Note: Headers are not used in this program but can be implemented
 # If there is difficulties connecting to Indeed.com.au
 
-headers = {
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-    'accept-encoding': 'gzip, deflate, br',
-    'accept-language': 'en-US,en;q=0.9',
-    'cache-control': 'max-age=0',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.47'
-}
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0'}
 
-def get_record(card, new_proxy):
+def get_record(card, proxy):
     href = card.get('href')
     new_url = 'https://indeed.com.au' + href
 
@@ -36,7 +26,7 @@ def get_record(card, new_proxy):
     #delay = randint(1, 2)
     #sleep(delay)
     
-    response_desc = requests.get(new_url,proxies={"http": ("http://"+new_proxy), "https": ("http://"+new_proxy)})
+    response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})
     print("Description URL Status: " + str(response_desc.status_code))
     
     response_desc.encoding = response_desc
@@ -74,49 +64,47 @@ def get_record(card, new_proxy):
 
     return record
 
-def working_proxy(url):
-    proxies = get_proxies()
-    proxy_pool = cycle(proxies)
-    
-    new_proxy = ''
-    i = 0
-    while True:
-        #Get a proxy from the pool
-        proxy = next(proxy_pool)
-        i = i+1
-        print("Request #%d"%i)
-        try:
-            print(("testing proxy - http://"+proxy))
-            response = requests.get(url, timeout=5, proxies={"http": ("http://"+proxy), "https": ("http://"+proxy)})
-            print("status: " + str(response.status_code()))
-            print("Success!")
-            new_proxy = proxy
-            break
-                
-        except:
-            #Most free proxies will often get connection errors. You will have retry the entire request using another proxy to work. 
-            #We will just skip retries as its beyond the scope of this tutorial and we are only downloading a single url 
-            print("Skipping. Connnection error")
-    return new_proxy
+proxy_list = []
+
+def extract(proxy):
+    #this was for when we took a list into the function, without conc futures.
+    #proxy = random.choice(proxylist)
+    try:
+        #change the url to https://httpbin.org/ip that doesnt block anything
+        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=2.5)
+        proxy_list.append(proxy)
+    except:
+        pass
+    return proxy
 
 def main():
     """Run the main program"""
     records = []
     values = 0
     url = 'https://www.indeed.com.au/data-jobs'
+
+    proxylist = getProxies()
+
+    print("Extracting best proxies...")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(extract, proxylist)
+
+    print(proxy_list)
     
     # Create template for CSV file
     with open('results.csv', 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Job Title', 'Company', 'Location', 'Salary', 'Posting Date', 'Extract Date', 'Summary', 'Description', 'Job Url'])
 
-    new_proxy = working_proxy(url)
+    new_proxy = proxy_list[0]
+    #check them all with futures super quick
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(extract, proxylist)
     
     # Data Scraping
     while True:
-
         try:
-            response = requests.get(url,proxies={"http": ("http://"+new_proxy), "https": ("http://"+new_proxy)})
+            response = requests.get(url, headers=headers, proxies={'http' : 'http://'+new_proxy,'https': 'https://'+new_proxy})
             response.encoding = response
             print("New URL Status: " + str(response.status_code))
             print(response.url)
@@ -129,7 +117,11 @@ def main():
                 records.append(record)
                 
         except AttributeError:
-            print("Error Occurred.") 
+            print("Error Occurred.")
+
+        except requests.exceptions.RequestException as e:
+            print(e)
+            pass
 
         
         # Save the data to CSV
@@ -151,16 +143,19 @@ def main():
             
 
 # Proxy hopping to avoid indeed detecting scraping
-def get_proxies():
-    url = 'https://free-proxy-list.net/'
-    response = requests.get(url)
-    parser = fromstring(response.text)
-    proxies = set()
-    for i in parser.xpath('//tbody/tr')[:10]:
-        if i.xpath('.//td[7][contains(text(),"yes")]'):
-        #Grabbing IP and corresponding PORT
-            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
-            proxies.add(proxy)
+# get the list of free proxies
+
+def getProxies():
+    r = requests.get('https://free-proxy-list.net/')
+    soup = BeautifulSoup(r.content, 'html.parser')
+    table = soup.find('tbody')
+    proxies = []
+    for row in table:
+        if row.find_all('td')[4].text =='elite proxy':
+            proxy = ':'.join([row.find_all('td')[0].text, row.find_all('td')[1].text])
+            proxies.append(proxy)
+        else:
+            pass
     return proxies
 
 
