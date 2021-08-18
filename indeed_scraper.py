@@ -22,11 +22,12 @@ def get_record(card, proxy):
     href = card.get('href')
     new_url = 'https://indeed.com.au' + href
 
-    # To avoid being kicked for frequent requests
-    #delay = randint(1, 2)
-    #sleep(delay)
+    try:
+        response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})
+    except requests.exceptions.RequestException as e:
+            print(e)
+            pass
     
-    response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})
     print("Description URL Status: " + str(response_desc.status_code))
     
     response_desc.encoding = response_desc
@@ -71,7 +72,7 @@ def extract(proxy):
     #proxy = random.choice(proxylist)
     try:
         #change the url to https://httpbin.org/ip that doesnt block anything
-        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=2.5)
+        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=1.5)
         proxy_list.append(proxy)
     except:
         pass
@@ -135,11 +136,15 @@ def main():
             
         try:
             url = 'https://www.indeed.com.au' + soup.find('a', {'aria-label': 'Next'}).get('href')
-            #delay = randint(1, 2)
-            #sleep(delay)
         except AttributeError:
+            # This shouldn't be called until all proxies from list are depleted. (quick fix im going to sleep and letting it run)
             print("CAPTA OR PROXY ISSUE")
-            new_proxy = working_proxy(url)
+            proxylist = getProxies()
+
+            print("Extracting best proxies again...")
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.map(extract, proxylist)
+            print(proxy_list)
             
 
 # Proxy hopping to avoid indeed detecting scraping
