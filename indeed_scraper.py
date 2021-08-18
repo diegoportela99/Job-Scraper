@@ -22,12 +22,7 @@ def get_record(card, proxy):
     href = card.get('href')
     new_url = 'https://indeed.com.au' + href
 
-    try:
-        response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})
-    except requests.exceptions.RequestException as e:
-            print(e)
-            pass
-    
+    response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})   
     print("Description URL Status: " + str(response_desc.status_code))
     
     response_desc.encoding = response_desc
