@@ -4,6 +4,9 @@ import csv
 from time import sleep
 from random import randint
 from datetime import datetime
+from lxml.html import fromstring
+from itertools import cycle
+import traceback
 
 # Author: Diego Portela
 # Webscrapper program for indeed.com.au
@@ -25,15 +28,15 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.47'
 }
 
-def get_record(card):
+def get_record(card, new_proxy):
     href = card.get('href')
-    new_url = 'https://au.indeed.com' + href
+    new_url = 'https://indeed.com.au' + href
 
     # To avoid being kicked for frequent requests
-    delay = randint(1, 2)
-    sleep(delay)
+    #delay = randint(1, 2)
+    #sleep(delay)
     
-    response_desc = requests.get(new_url)
+    response_desc = requests.get(new_url,proxies={"http": ("http://"+new_proxy), "https": ("http://"+new_proxy)})
     print("Description URL Status: " + str(response_desc.status_code))
     
     response_desc.encoding = response_desc
@@ -69,28 +72,51 @@ def get_record(card):
 
     new_url = ""
 
-    print(record)
     return record
+
+def working_proxy(url):
+    proxies = get_proxies()
+    proxy_pool = cycle(proxies)
+    
+    new_proxy = ''
+    i = 0
+    while True:
+        #Get a proxy from the pool
+        proxy = next(proxy_pool)
+        i = i+1
+        print("Request #%d"%i)
+        try:
+            print(("testing proxy - http://"+proxy))
+            response = requests.get(url, timeout=5, proxies={"http": ("http://"+proxy), "https": ("http://"+proxy)})
+            print("status: " + str(response.status_code()))
+            print("Success!")
+            new_proxy = proxy
+            break
+                
+        except:
+            #Most free proxies will often get connection errors. You will have retry the entire request using another proxy to work. 
+            #We will just skip retries as its beyond the scope of this tutorial and we are only downloading a single url 
+            print("Skipping. Connnection error")
+    return new_proxy
 
 def main():
     """Run the main program"""
     records = []
     values = 0
-    url = 'https://au.indeed.com/data-jobs'
+    url = 'https://www.indeed.com.au/data-jobs'
     
     # Create template for CSV file
     with open('results.csv', 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Job Title', 'Company', 'Location', 'Salary', 'Posting Date', 'Extract Date', 'Summary', 'Description', 'Job Url'])
+
+    new_proxy = working_proxy(url)
     
     # Data Scraping
     while True:
-        
-        # If an error occurs the try catch should stop any crashing
-        # Keeping the latest fetched data
-        
-        try:        
-            response = requests.get(url)
+
+        try:
+            response = requests.get(url,proxies={"http": ("http://"+new_proxy), "https": ("http://"+new_proxy)})
             response.encoding = response
             print("New URL Status: " + str(response.status_code))
             print(response.url)
@@ -99,12 +125,11 @@ def main():
             cards = soup.find_all('a', 'tapItem')
     
             for card in cards:
-                record = get_record(card)
+                record = get_record(card, new_proxy)
                 records.append(record)
                 
-
         except AttributeError:
-            break 
+            print("Error Occurred.") 
 
         
         # Save the data to CSV
@@ -118,10 +143,25 @@ def main():
             
         try:
             url = 'https://www.indeed.com.au' + soup.find('a', {'aria-label': 'Next'}).get('href')
-            delay = randint(1, 10)
-            sleep(delay)
+            #delay = randint(1, 2)
+            #sleep(delay)
         except AttributeError:
-            break
+            print("CAPTA OR PROXY ISSUE")
+            new_proxy = working_proxy(url)
             
+
+# Proxy hopping to avoid indeed detecting scraping
+def get_proxies():
+    url = 'https://free-proxy-list.net/'
+    response = requests.get(url)
+    parser = fromstring(response.text)
+    proxies = set()
+    for i in parser.xpath('//tbody/tr')[:10]:
+        if i.xpath('.//td[7][contains(text(),"yes")]'):
+        #Grabbing IP and corresponding PORT
+            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            proxies.add(proxy)
+    return proxies
+
 
 main()
