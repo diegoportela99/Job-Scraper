@@ -151,34 +151,40 @@ def data_save(records):
     # if any of the rows (other than the description) are overflowing
     # Then cut the data
 
-    for i in range(5):
-        if (len(records[i] > MAX_CHAR)):
-            print("Data overflow")
-            records[i] = records[i][:MAX_CHAR]
+    num_records = len(records)
+
+    for l in range(num_records):
+        for i in range(5):
+            if (len(records[l][i] > MAX_CHAR)):
+                print("Data overflow")
+                records[l][i] = records[l][i][:MAX_CHAR]
     
     # CSV Files can have a maximum of ~32,767 characters per cell, 
     # if Desc text exceeds then render the information as overflow>
+
     
-    desc_length = len(records[6])
-    overflow = []
-    if (desc_length > MAX_CHAR):
-        print("Adding Description as overflow>")
-        split = (int(desc_length / MAX_CHAR))
-        new_desc = (records[6][:MAX_CHAR])
-        prev_max = MAX_CHAR
-        for i in range(split):
-            # if positional index is near the end of the char array
-            if (desc_length - prev_max < MAX_CHAR):
-                overflow.append(records[6][prev_max: desc_length])
-            else:
-                overflow.append(records[6][prev_max:prev_max+MAX_CHAR])
-            prev_max = prev_max + MAX_CHAR
-        # set record description as new description
-        records[6] = new_desc
+    for l in range (num_records):
+        desc_length = len(records[l][6])
+        overflow = []
+        if (desc_length > MAX_CHAR):
+            print("Adding Description as overflow>")
+            split = (int(desc_length / MAX_CHAR))
+            new_desc = (records[l][6][:MAX_CHAR])
+            prev_max = MAX_CHAR
+            for i in range(split):
+                # if positional index is near the end of the char array
+                if (desc_length - prev_max < MAX_CHAR):
+                    overflow.append(records[l][6][prev_max: desc_length])
+                else:
+                    overflow.append(records[l][6][prev_max:prev_max+MAX_CHAR])
+                prev_max = prev_max + MAX_CHAR
+            # set record description as new description
+            records[l][6] = new_desc
+            records[l] += overflow
         
     with open('results.csv', 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerows(records + overflow) 
+        writer.writerows(records) 
 
 def main():
     records = []
