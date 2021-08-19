@@ -25,7 +25,7 @@ def extract(proxy):
     #this was for when we took a list into the function, without conc futures.
     #proxy = random.choice(proxylist)
     try:
-        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies=proxy_type(proxy), timeout=1.5)
+        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=1.5)
         proxy_list.append(proxy) #Populate the global proxy_list
     except:
         pass
@@ -62,7 +62,7 @@ def create_template():
     print('creating template CSV...')
     with open('results.csv', 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['Job Title', 'Company', 'Location', 'Salary', 'Posting Date', 'Extract Date', 'Description', 'Job Url'])
+        writer.writerow(['Job Title', 'Company', 'Location', 'Salary', 'Posting Date', 'Extract Date', 'Description', 'Job Url', 'overflow>'])
 
 
 # set a new proxy from the proxy list
@@ -78,7 +78,7 @@ def get_proxy():
 def proxy_type(proxy):
     proxies = {
         'http' : 'http://'+proxy,
-        'https': 'http://'+proxy
+        'https': 'https://'+proxy
     }
     return proxies
 
@@ -144,14 +144,36 @@ def get_record(card):
 
 def data_save(records):
     # Save the data to CSV
+
+    # CSV Files can have a maximum of ~32,767 characters per cell, 
+    # if Desc text exceeds then render the information as overflow>
+    
+    MAX_CHAR = 30000
+    desc_length = len(records[6])
+    overflow = []
+    if (desc_length > MAX_CHAR):
+        print("Adding Description as overflow>")
+        split = (int(desc_length / MAX_CHAR))
+        new_desc = (records[6][:MAX_CHAR])
+        prev_max = MAX_CHAR
+        for i in range(split):
+            # if positional index is near the end of the char array
+            if (desc_length - prev_max < MAX_CHAR):
+                overflow.append(records[6][prev_max: desc_length])
+            else:
+                overflow.append(records[6][prev_max:prev_max+MAX_CHAR])
+            prev_max = prev_max + MAX_CHAR
+        # set record description as new description
+        records[6] = new_desc
+        
     with open('results.csv', 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerows(records) 
+        writer.writerows(records + overflow) 
 
 def main():
     records = []
     total_scraped = 0
-    url = 'https://au.indeed.com/jobs?q=data&start=370'
+    url = 'https://au.indeed.com/data-jobs'
 
     # Set the proxies
     get_proxy()
