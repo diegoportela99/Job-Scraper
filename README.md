@@ -12,6 +12,10 @@ The program is written in python 3.
 
 ## How to run the code 🚀
 
+```diff
++ THIS PROGRAM IS ONLY FOR EDUCATIONAL PURPOSES AND WAS NOT INTENDED FOR MALICIOUS OR SPITEFUL PURPOSES
+```
+
 It's very easy you just need to do the following below!
 
 1. Run requirements.txt
