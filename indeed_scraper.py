@@ -155,7 +155,7 @@ def data_save(records):
 
     for l in range(num_records):
         for i in range(5):
-            if (len(records[l][i] > MAX_CHAR)):
+            if (len(records[l][i]) > MAX_CHAR):
                 print("Data overflow")
                 records[l][i] = records[l][i][:MAX_CHAR]
     
