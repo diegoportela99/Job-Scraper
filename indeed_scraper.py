@@ -142,7 +142,7 @@ def get_record(card):
     today = datetime.today().strftime("%Y-%m-%d")
     real_url = response.url
     
-    record = (title, company, location, salary, date, today, description, real_url)
+    record = [title, company, location, salary, date, today, description, real_url]
     return record
 
 def data_save(records):
