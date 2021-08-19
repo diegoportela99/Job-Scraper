@@ -22,7 +22,12 @@ def get_record(card, proxy):
     href = card.get('href')
     new_url = 'https://indeed.com.au' + href
 
-    response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})   
+    try:
+        response_desc = requests.get(new_url, headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy})
+    except requests.exceptions.RequestException as e:
+        print(e)
+        render_proxy()
+        return
     print("Description URL Status: " + str(response_desc.status_code))
     
     response_desc.encoding = response_desc
@@ -128,10 +133,10 @@ def main():
 
 def render_proxy():
     # This shouldn't be called until all proxies from list are depleted. (quick fix im going to sleep and letting it run)
-    proxy_list = getProxies()
+    proxylist = getProxies()
     print("Extracting best proxies... ")
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(extract, proxy_list)
+        executor.map(extract, proxylist)
     print(proxy_list)
             
 
