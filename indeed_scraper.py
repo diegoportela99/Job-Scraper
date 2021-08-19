@@ -198,8 +198,7 @@ def main():
         else:
             print('invalid server reponse')
             get_proxy()
-        
-            
-    
 
-main()
+
+if __name__ == '__main__':
+    main()
