@@ -20,12 +20,20 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gec
 proxy_list = []
 current_proxy = ''
 
+# Defining default proxy type
+def proxy_type(proxy):
+    proxies = {
+        'http' : 'http://'+proxy,
+        'https': 'http://'+proxy
+    }
+    return proxies
+
 def extract(proxy):
     global proxy_list
     #this was for when we took a list into the function, without conc futures.
     #proxy = random.choice(proxylist)
     try:
-        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=1.5)
+        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies=proxy_type(proxy), timeout=1.5)
         proxy_list.append(proxy) #Populate the global proxy_list
     except:
         pass
@@ -75,13 +83,6 @@ def get_proxy():
         render_proxy()
         return get_proxy()
 
-def proxy_type(proxy):
-    proxies = {
-        'http' : 'http://'+proxy,
-        'https': 'https://'+proxy
-    }
-    return proxies
-
 
 # Get the details of found card, returns record
 def get_record(card):
@@ -102,8 +103,9 @@ def get_record(card):
     get_desc = soup.find('div', {"class":"jobsearch-jobDescriptionText"})
     description = ''
 
-    for child in get_desc.findChildren(recursive=True):
-        description = description + (child.getText()) + " "
+    if (get_desc):
+        for child in get_desc.findChildren(recursive=True):
+            description = description + (child.getText()) + " "
 
     # Get the other useful information of the card
 
