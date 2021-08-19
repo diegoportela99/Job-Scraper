@@ -19,6 +19,7 @@ import csv
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0'}
 proxy_list = []
 current_proxy = ''
+MAX_CHAR = 30000 # Max char in CSV per cell
 
 # Defining default proxy type
 def proxy_type(proxy):
@@ -147,10 +148,17 @@ def get_record(card):
 def data_save(records):
     # Save the data to CSV
 
+    # if any of the rows (other than the description) are overflowing
+    # Then cut the data
+
+    for i in range(5):
+        if (len(records[i] > MAX_CHAR):
+            print("Data overflow")
+            records[i] = records[i][:MAX_CHAR]
+    
     # CSV Files can have a maximum of ~32,767 characters per cell, 
     # if Desc text exceeds then render the information as overflow>
     
-    MAX_CHAR = 30000
     desc_length = len(records[6])
     overflow = []
     if (desc_length > MAX_CHAR):
