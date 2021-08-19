@@ -25,7 +25,7 @@ def extract(proxy):
     #this was for when we took a list into the function, without conc futures.
     #proxy = random.choice(proxylist)
     try:
-        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies={'http' : 'http://'+proxy,'https': 'https://'+proxy }, timeout=1.5)
+        r = requests.get('https://www.indeed.com.au/data-jobs', headers=headers, proxies=proxy_type(proxy), timeout=1.5)
         proxy_list.append(proxy) #Populate the global proxy_list
     except:
         pass
@@ -78,7 +78,7 @@ def get_proxy():
 def proxy_type(proxy):
     proxies = {
         'http' : 'http://'+proxy,
-        'https': 'https://'+proxy
+        'https': 'http://'+proxy
     }
     return proxies
 
@@ -151,7 +151,7 @@ def data_save(records):
 def main():
     records = []
     total_scraped = 0
-    url = 'https://www.indeed.com.au/data-jobs'
+    url = 'https://au.indeed.com/jobs?q=data&start=370'
 
     # Set the proxies
     get_proxy()
